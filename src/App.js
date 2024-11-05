@@ -1,23 +1,40 @@
-import logo from './logo.svg';
 import './App.css';
+import Header from './Components/Header';
+import NewsBoard from './Components/NewsBoard';
+import 'bootstrap/dist/css/bootstrap.min.css';
+import { useState, useEffect } from 'react';
 
 function App() {
+  const [articles, setArticles] = useState([]);
+  const API_KEY = 'HTV7_vvELnQGDTS-Dl6QP0jVZY_K7Vjcqf4PHk22SXKdenza'; // Replace with your actual API key
+  const BASE_URL = 'https://api.currentsapi.services/v1/latest-news';
+
+  const fetchArticles = async (category = '') => {
+    const url = `${BASE_URL}?country=in${category ? `&category=${category}` : ''}&apiKey=${API_KEY}`;
+    try {
+      const response = await fetch(url);
+      const data = await response.json();
+      setArticles(data.news || []); // Set articles to the fetched data
+    } catch (error) {
+      console.error("Error fetching articles:", error);
+    }
+  };
+
+  useEffect(() => {
+    fetchArticles(); // Fetch default articles on initial load
+  }, []);
+
+  const handleCategoryChange = (category) => {
+    fetchArticles(category); // Fetch articles for the selected category
+  };
+
   return (
-    <div className="App">
-      <header className="App-header">
-        <img src={logo} className="App-logo" alt="logo" />
-        <p>
-          Edit <code>src/App.js</code> and save to reload.
-        </p>
-        <a
-          className="App-link"
-          href="https://reactjs.org"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Learn React
-        </a>
-      </header>
+    <div>
+      <Header onCategoryChange={handleCategoryChange} />
+      <div className="background-overlay"></div>
+      <div className="content">
+        <NewsBoard articles={articles} />
+      </div>
     </div>
   );
 }
