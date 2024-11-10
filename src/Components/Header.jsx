@@ -18,7 +18,7 @@ const Header = ({ onCategoryChange }) => {
           src={sam}
           alt="Logo"
           className="img-fluid"
-          style={{ width: '110px' }}
+          style={{ width: '100px' }}
         />
       </a>
       <button

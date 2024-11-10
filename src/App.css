@@ -27,6 +27,11 @@ body {
   z-index: 1; /* Brings content above the background */
   padding: 50px; /* Add padding as needed */
   opacity: .87;
+  padding-top: 7em; /* Default header height */
+}@media (max-width: 768px) {
+  .content {
+    padding-top: 8em; /* Adjust if the header is taller on mobile */
+  }
 }
 
 

@@ -29,8 +29,8 @@ function App() {
   };
 
   return (
-    <div>
-      <Header onCategoryChange={handleCategoryChange} />
+   <div> <div className='fixed-top'>
+      <Header onCategoryChange={handleCategoryChange} /></div>
       <div className="background-overlay"></div>
       <div className="content">
         <NewsBoard articles={articles} />
