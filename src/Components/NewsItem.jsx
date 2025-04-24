@@ -10,7 +10,7 @@ const NewsItem = ({ title, description, image, url }) => {
   const [isTransitioning, setIsTransitioning] = useState(false);
   const cardRef = useRef(null);
   const typingIntervalRef = useRef(null);
-  
+  const api_key = process.env.REACT_APP_HUGGINGFACE_API_KEY; 
   const placeholderImage =
     "https://thumbs.dreamstime.com/b/news-woodn-dice-depicting-letters-bundle-small-newspapers-leaning-left-dice-34802664.jpg?w=768"; // Placeholder URL
 
@@ -108,7 +108,7 @@ const NewsItem = ({ title, description, image, url }) => {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
-            "Authorization": "Bearer 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"
+            "Authorization": `Bearer ${api_key}`
           },
           body: JSON.stringify({
             inputs: textToSummarize,
