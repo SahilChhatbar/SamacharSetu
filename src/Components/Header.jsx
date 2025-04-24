@@ -59,8 +59,6 @@ const Header = ({ onCategoryChange }) => {
     <p className="mb-0 small">{dateTime.time || "Loading time..."}</p>
   </div>
 </div>
-
-
       <button
         className="navbar-toggler"
         type="button"

@@ -1,4 +1,5 @@
 import './App.css';
+import Footer from './Components/Footer';
 import Header from './Components/Header';
 import NewsBoard from './Components/NewsBoard';
 import 'bootstrap/dist/css/bootstrap.min.css';
@@ -7,7 +8,7 @@ import { useState, useEffect } from 'react';
 function App() {
   const [articles, setArticles] = useState([]);
   const API_KEY = process.env.REACT_APP_API_KEY;
-    const BASE_URL = 'https://api.currentsapi.services/v1/latest-news';
+  const BASE_URL = 'https://api.currentsapi.services/v1/latest-news';
 
   const fetchArticles = async (category = '') => {
     const url = `${BASE_URL}?country=in${category ? `&category=${category}` : ''}&apiKey=${API_KEY}`;
@@ -29,12 +30,15 @@ function App() {
   };
 
   return (
-   <div> <div className='fixed-top'>
-      <Header onCategoryChange={handleCategoryChange} /></div>
+    <div className="app-container">
+      <div className='fixed-top'>
+        <Header onCategoryChange={handleCategoryChange} />
+      </div>
       <div className="background-overlay"></div>
       <div className="content">
         <NewsBoard articles={articles} />
       </div>
+      <Footer />
     </div>
   );
 }

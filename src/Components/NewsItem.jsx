@@ -4,9 +4,12 @@ import { Card, Button, Spinner } from "react-bootstrap";
 const NewsItem = ({ title, description, image, url }) => {
   const [showOptions, setShowOptions] = useState(false);
   const [summary, setSummary] = useState("");
+  const [displayedSummary, setDisplayedSummary] = useState("");
   const [loading, setLoading] = useState(false);
   const [showSummary, setShowSummary] = useState(false);
+  const [isTransitioning, setIsTransitioning] = useState(false);
   const cardRef = useRef(null);
+  const typingIntervalRef = useRef(null);
   
   const placeholderImage =
     "https://thumbs.dreamstime.com/b/news-woodn-dice-depicting-letters-bundle-small-newspapers-leaning-left-dice-34802664.jpg?w=768"; // Placeholder URL
@@ -14,8 +17,10 @@ const NewsItem = ({ title, description, image, url }) => {
   useEffect(() => {
     const handleOutsideClick = (event) => {
       if (cardRef.current && !cardRef.current.contains(event.target) && showOptions) {
-        setShowOptions(false);
-        setShowSummary(false);
+        handleCardTransition(() => {
+          setShowOptions(false);
+          setShowSummary(false);
+        });
       }
     };
 
@@ -23,12 +28,53 @@ const NewsItem = ({ title, description, image, url }) => {
     
     return () => {
       document.removeEventListener("mousedown", handleOutsideClick);
+      if (typingIntervalRef.current) {
+        clearInterval(typingIntervalRef.current);
+      }
     };
   }, [showOptions]);
 
+  useEffect(() => {
+    if (summary && showSummary && !loading) {
+      setDisplayedSummary("");
+      let i = 0;
+      
+      if (typingIntervalRef.current) {
+        clearInterval(typingIntervalRef.current);
+      }
+      
+      typingIntervalRef.current = setInterval(() => {
+        if (i < summary.length) {
+          setDisplayedSummary(prev => prev + summary.charAt(i));
+          i++;
+        } else {
+          clearInterval(typingIntervalRef.current);
+        }
+      }, 20); 
+    }
+    
+    return () => {
+      if (typingIntervalRef.current) {
+        clearInterval(typingIntervalRef.current);
+      }
+    };
+  }, [summary, showSummary, loading]);
+
+  const handleCardTransition = (callback) => {
+    setIsTransitioning(true);
+    setTimeout(() => {
+      callback();
+      setTimeout(() => {
+        setIsTransitioning(false);
+      }, 50);
+    }, 300);
+  };
+
   const handleCardClick = (e) => {
     e.preventDefault();
-    setShowOptions(true);
+    handleCardTransition(() => {
+      setShowOptions(true);
+    });
   };
 
   const handleReadArticle = () => {
@@ -37,18 +83,22 @@ const NewsItem = ({ title, description, image, url }) => {
 
   const handleAISummary = async () => {
     if (summary) {
-      setShowSummary(true);
+      handleCardTransition(() => {
+        setShowSummary(true);
+      });
       return;
     }
 
     setLoading(true);
+    handleCardTransition(() => {
+      setShowSummary(true);
+    });
     
     try {
       const textToSummarize = description || title;
       if (!textToSummarize) {
         setSummary("Not enough content to summarize.");
         setLoading(false);
-        setShowSummary(true);
         return;
       }
 
@@ -72,15 +122,12 @@ const NewsItem = ({ title, description, image, url }) => {
       );
 
       const result = await response.json();
-      
       if (result.error) {
         console.error("API Error:", result.error);
         setSummary(`Unable to generate summary: ${result.error}`);
         setLoading(false);
-        setShowSummary(true);
         return;
       }
-      
       if (result && result[0] && result[0].summary_text) {
         setSummary(result[0].summary_text);
       } else {
@@ -93,23 +140,32 @@ const NewsItem = ({ title, description, image, url }) => {
     }
     
     setLoading(false);
-    setShowSummary(true);
   };
   
   const handleBack = () => {
     if (showSummary) {
-      setShowSummary(false);
+      handleCardTransition(() => {
+        setShowSummary(false);
+      });
     } else {
-      setShowOptions(false);
+      handleCardTransition(() => {
+        setShowOptions(false);
+      });
     }
   };
 
   const getSummaryContentHeight = () => {
-    return "250px";
-    };
+    return "250px"; 
+  };
+
+  const cardClasses = `h-100 ${isTransitioning ? 'opacity-50' : 'opacity-100'}`;
+  const transitionStyle = {
+    transition: 'all 0.3s ease',
+    transform: isTransitioning ? 'scale(0.98)' : 'scale(1)'
+  };
 
   return (
-    <Card className="h-100" ref={cardRef}>
+    <Card className={cardClasses} ref={cardRef} style={transitionStyle}>
       {!showOptions ? (
         <a 
           href="#" 
@@ -135,8 +191,9 @@ const NewsItem = ({ title, description, image, url }) => {
         <Card.Body className="d-flex flex-column p-0">
           <div className="d-flex justify-content-between align-items-center p-3 border-bottom">
             <Button 
-              variant="ghost"
-              className="px-2 py-0 border border-black rounded-md" 
+              variant="outline-secondary"
+              size="sm"
+              className="px-2 py-0" 
               onClick={handleBack}
             >
               ← 
@@ -153,11 +210,16 @@ const NewsItem = ({ title, description, image, url }) => {
           >
             {loading ? (
               <div className="text-center my-4">
-                <Spinner animation="border" role="status" />
+                <Spinner animation="border" role="status" variant="primary" />
                 <p className="mt-2">Generating comprehensive summary...</p>
               </div>
             ) : (
-              <Card.Text>{summary}</Card.Text>
+              <Card.Text>
+                {displayedSummary}
+                {displayedSummary.length !== summary.length && (
+                  <span className="border-dark typing-cursor-bootstrap"></span>
+                )}
+              </Card.Text>
             )}
           </div>
           <div className="p-3 border-top mt-auto">
@@ -175,8 +237,9 @@ const NewsItem = ({ title, description, image, url }) => {
         <Card.Body>
           <div className="d-flex justify-content-between align-items-center mb-3">
             <Button 
-              variant="ghost"
-              className="px-2 py-0 border border-black rounded-md" 
+              variant="outline-secondary"
+              size="sm"
+              className="px-2 py-0" 
               onClick={handleBack}
             >
               ← 
@@ -185,8 +248,9 @@ const NewsItem = ({ title, description, image, url }) => {
             <div style={{ width: "45px" }}></div>
           </div>
           <div className="d-flex flex-column mt-3">
-            <button
-              className="btn btn-primary mb-2"
+            <Button
+              variant="primary"
+              className="mb-2"
               onClick={handleAISummary}
               disabled={loading}
             >
@@ -198,13 +262,13 @@ const NewsItem = ({ title, description, image, url }) => {
               ) : (
                 "AI Summary"
               )}
-            </button>
-            <button
-              className="btn btn-secondary"
+            </Button>
+            <Button
+              variant="secondary"
               onClick={handleReadArticle}
             >
               Read Article
-            </button>
+            </Button>
           </div>
         </Card.Body>
       )}
