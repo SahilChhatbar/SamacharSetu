@@ -10,9 +10,9 @@ const NewsItem = ({ title, description, image, url }) => {
   const [isTransitioning, setIsTransitioning] = useState(false);
   const cardRef = useRef(null);
   const typingIntervalRef = useRef(null);
-  const api_key = process.env.REACT_APP_HUGGINGFACE_API_KEY; 
+  const api_key = process.env.REACT_APP_HUGGINGFACE_API_KEY;
   const placeholderImage =
-    "https://thumbs.dreamstime.com/b/news-woodn-dice-depicting-letters-bundle-small-newspapers-leaning-left-dice-34802664.jpg?w=768"; // Placeholder URL
+    "https://thumbs.dreamstime.com/b/news-woodn-dice-depicting-letters-bundle-small-newspapers-leaning-left-dice-34802664.jpg?w=768";
 
   useEffect(() => {
     const handleOutsideClick = (event) => {
@@ -25,7 +25,7 @@ const NewsItem = ({ title, description, image, url }) => {
     };
 
     document.addEventListener("mousedown", handleOutsideClick);
-    
+
     return () => {
       document.removeEventListener("mousedown", handleOutsideClick);
       if (typingIntervalRef.current) {
@@ -38,11 +38,11 @@ const NewsItem = ({ title, description, image, url }) => {
     if (summary && showSummary && !loading) {
       setDisplayedSummary("");
       let i = 0;
-      
+
       if (typingIntervalRef.current) {
         clearInterval(typingIntervalRef.current);
       }
-      
+
       typingIntervalRef.current = setInterval(() => {
         if (i < summary.length) {
           setDisplayedSummary(prev => prev + summary.charAt(i));
@@ -50,9 +50,9 @@ const NewsItem = ({ title, description, image, url }) => {
         } else {
           clearInterval(typingIntervalRef.current);
         }
-      }, 20); 
+      }, 20);
     }
-    
+
     return () => {
       if (typingIntervalRef.current) {
         clearInterval(typingIntervalRef.current);
@@ -70,15 +70,16 @@ const NewsItem = ({ title, description, image, url }) => {
     }, 300);
   };
 
-  const handleCardClick = (e) => {
-    e.preventDefault();
+  const handleCardClick = () => {
     handleCardTransition(() => {
       setShowOptions(true);
     });
   };
 
   const handleReadArticle = () => {
-    window.open(url, "_blank");
+    if (url) {
+      window.open(url, "_blank");
+    }
   };
 
   const handleAISummary = async () => {
@@ -93,7 +94,7 @@ const NewsItem = ({ title, description, image, url }) => {
     handleCardTransition(() => {
       setShowSummary(true);
     });
-    
+
     try {
       const textToSummarize = description || title;
       if (!textToSummarize) {
@@ -138,10 +139,10 @@ const NewsItem = ({ title, description, image, url }) => {
       console.error("Error generating summary:", error);
       setSummary("Error generating summary. Please try again later.");
     }
-    
+
     setLoading(false);
   };
-  
+
   const handleBack = () => {
     if (showSummary) {
       handleCardTransition(() => {
@@ -155,7 +156,7 @@ const NewsItem = ({ title, description, image, url }) => {
   };
 
   const getSummaryContentHeight = () => {
-    return "250px"; 
+    return "250px";
   };
 
   const cardClasses = `h-100 ${isTransitioning ? 'opacity-50' : 'opacity-100'}`;
@@ -167,17 +168,19 @@ const NewsItem = ({ title, description, image, url }) => {
   return (
     <Card className={cardClasses} ref={cardRef} style={transitionStyle}>
       {!showOptions ? (
-        <a 
-          href="#" 
-          onClick={handleCardClick} 
-          style={{ textDecoration: "none", color: "inherit" }}
+        <button
+          type="button"
+          className="btn p-0 text-start"
+          onClick={handleCardClick}
+          aria-label={`Open options for ${title}`}
+          style={{ textDecoration: "none", color: "inherit", border: "none", background: "transparent" }}
         >
           <Card.Img
             variant="top"
             src={image || placeholderImage}
             alt={title}
             onError={(e) => {
-              e.target.src = placeholderImage;
+              e.currentTarget.src = placeholderImage;
             }}
           />
           <Card.Body>
@@ -186,31 +189,31 @@ const NewsItem = ({ title, description, image, url }) => {
               {description ? description : "No description available."}
             </Card.Text>
           </Card.Body>
-        </a>
+        </button>
       ) : showSummary ? (
         <Card.Body className="d-flex flex-column p-0">
           <div className="d-flex justify-content-between align-items-center p-3 border-bottom">
-            <Button 
+            <Button
               variant="outline-secondary"
               size="sm"
-              className="px-2 py-0" 
+              className="px-2 py-0"
               onClick={handleBack}
             >
-              ← 
+              ←
             </Button>
             <Card.Title className="mb-0 p-2">AI Summary</Card.Title>
             <div style={{ width: "45px" }}></div>
           </div>
-          <div 
-            className="flex-grow-1 overflow-auto px-3 py-2" 
-            style={{ 
+          <div
+            className="flex-grow-1 overflow-auto px-3 py-2"
+            style={{
               maxHeight: getSummaryContentHeight(),
-              overflowY: "auto" 
+              overflowY: "auto"
             }}
           >
             {loading ? (
               <div className="text-center my-4">
-                <Spinner animation="border" role="status" variant="primary" />
+                <Spinner animation="border" role="status" />
                 <p className="mt-2">Generating comprehensive summary...</p>
               </div>
             ) : (
@@ -224,9 +227,10 @@ const NewsItem = ({ title, description, image, url }) => {
           </div>
           <div className="p-3 border-top mt-auto">
             <div className="d-flex justify-content-end">
-              <Button 
-                variant="primary" 
+              <Button
+                variant="primary"
                 onClick={handleReadArticle}
+                type="button"
               >
                 Read Full Article
               </Button>
@@ -236,13 +240,13 @@ const NewsItem = ({ title, description, image, url }) => {
       ) : (
         <Card.Body>
           <div className="d-flex justify-content-between align-items-center mb-3">
-            <Button 
+            <Button
               variant="outline-secondary"
               size="sm"
-              className="px-2 py-0" 
+              className="px-2 py-0"
               onClick={handleBack}
             >
-              ← 
+              ←
             </Button>
             <Card.Title className="mb-0 p-2">{title}</Card.Title>
             <div style={{ width: "45px" }}></div>
@@ -253,6 +257,7 @@ const NewsItem = ({ title, description, image, url }) => {
               className="mb-2"
               onClick={handleAISummary}
               disabled={loading}
+              type="button"
             >
               {loading ? (
                 <>
@@ -266,6 +271,7 @@ const NewsItem = ({ title, description, image, url }) => {
             <Button
               variant="secondary"
               onClick={handleReadArticle}
+              type="button"
             >
               Read Article
             </Button>

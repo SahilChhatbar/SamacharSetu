@@ -26,7 +26,7 @@ const Header = ({ onCategoryChange }) => {
       let hours = dateObj.getHours();
       const minutes = String(dateObj.getMinutes()).padStart(2, "0");
       const ampm = hours >= 12 ? "PM" : "AM";
-      hours = hours % 12 || 12; // Convert to 12-hour format
+      hours = hours % 12 || 12;
       return `${hours}:${minutes} ${ampm}`;
     };
 
@@ -43,22 +43,22 @@ const Header = ({ onCategoryChange }) => {
 
   return (
     <nav className="navbar navbar-expand-lg navbar-light bg-light px-5">
-      <a
-        className="navbar-brand"
-        href="#"
-        onClick={(e) => {
-          e.preventDefault();
-          onCategoryChange("top-headlines");
-        }}
+      <button
+        type="button"
+        className="navbar-brand btn p-0"
+        onClick={() => onCategoryChange("top-headlines")}
+        aria-label="Home"
       >
         <img src={sam} alt="Logo" className="img-fluid" style={{ width: "100px" }} />
-      </a>
+      </button>
+
       <div className="ms-5 text-dark fw-bold d-flex align-items-center">
-  <div className="date-time-container text-center">
-    <p className="mb-0 small">{dateTime.date || "Loading date..."}</p>
-    <p className="mb-0 small">{dateTime.time || "Loading time..."}</p>
-  </div>
-</div>
+        <div className="date-time-container text-center">
+          <p className="mb-0 small">{dateTime.date || "Loading date..."}</p>
+          <p className="mb-0 small">{dateTime.time || "Loading time..."}</p>
+        </div>
+      </div>
+
       <button
         className="navbar-toggler"
         type="button"
@@ -76,6 +76,7 @@ const Header = ({ onCategoryChange }) => {
           {["Technology", "Sports", "Business", "Health", "Entertainment"].map((category) => (
             <li className="nav-item me-3" key={category}>
               <button
+                type="button"
                 className="btn nav-link"
                 onClick={() => onCategoryChange(category.toLowerCase())}
               >
