@@ -10,6 +10,10 @@ const NewsItem = ({ title, description, image, url }) => {
   const [isTransitioning, setIsTransitioning] = useState(false);
   const cardRef = useRef(null);
   const typingIntervalRef = useRef(null);
+
+  // For aborting the HF fetch if component unmounts / user closes
+  const fetchControllerRef = useRef(null);
+
   const api_key = process.env.REACT_APP_HUGGINGFACE_API_KEY;
   const placeholderImage =
     "https://thumbs.dreamstime.com/b/news-woodn-dice-depicting-letters-bundle-small-newspapers-leaning-left-dice-34802664.jpg?w=768";
@@ -30,6 +34,10 @@ const NewsItem = ({ title, description, image, url }) => {
       document.removeEventListener("mousedown", handleOutsideClick);
       if (typingIntervalRef.current) {
         clearInterval(typingIntervalRef.current);
+      }
+      // Abort ongoing fetch if any
+      if (fetchControllerRef.current) {
+        fetchControllerRef.current.abort();
       }
     };
   }, [showOptions]);
@@ -83,7 +91,17 @@ const NewsItem = ({ title, description, image, url }) => {
   };
 
   const handleAISummary = async () => {
+    // If we've already generated a summary, just open the summary view
     if (summary) {
+      handleCardTransition(() => {
+        setShowSummary(true);
+      });
+      return;
+    }
+
+    // Basic guard for missing API key
+    if (!api_key) {
+      setSummary("API key missing. Please set REACT_APP_HUGGINGFACE_API_KEY in your environment (recommended: proxy this server-side).");
       handleCardTransition(() => {
         setShowSummary(true);
       });
@@ -95,6 +113,13 @@ const NewsItem = ({ title, description, image, url }) => {
       setShowSummary(true);
     });
 
+    // Abort any previous controller
+    if (fetchControllerRef.current) {
+      fetchControllerRef.current.abort();
+    }
+    const controller = new AbortController();
+    fetchControllerRef.current = controller;
+
     try {
       const textToSummarize = description || title;
       if (!textToSummarize) {
@@ -103,44 +128,75 @@ const NewsItem = ({ title, description, image, url }) => {
         return;
       }
 
-      const response = await fetch(
-        "https://api-inference.huggingface.co/models/facebook/bart-large-cnn",
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "Authorization": `Bearer ${api_key}`
-          },
-          body: JSON.stringify({
-            inputs: textToSummarize,
-            parameters: {
-              max_length: 250,
-              min_length: 100,
-              do_sample: false
-            }
-          }),
+      const hfUrl = "https://api-inference.huggingface.co/models/facebook/bart-large-cnn";
+      const payload = {
+        inputs: textToSummarize,
+        parameters: {
+          max_length: 250,
+          min_length: 60,
+          do_sample: false
         }
-      );
+      };
 
-      const result = await response.json();
-      if (result.error) {
-        console.error("API Error:", result.error);
-        setSummary(`Unable to generate summary: ${result.error}`);
+      const response = await fetch(hfUrl, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${api_key}`
+        },
+        body: JSON.stringify(payload),
+        signal: controller.signal
+      });
+
+      // Handle non-OK status codes gracefully
+      if (!response.ok) {
+        // Try to extract error text
+        let errText = `${response.status} ${response.statusText}`;
+        try {
+          const jsonErr = await response.json();
+          if (jsonErr && jsonErr.error) errText += `: ${jsonErr.error}`;
+        } catch (e) {
+          const textErr = await response.text().catch(() => null);
+          if (textErr) errText += `: ${textErr}`;
+        }
+        setSummary(`Unable to generate summary (API returned ${errText}).`);
         setLoading(false);
         return;
       }
-      if (result && result[0] && result[0].summary_text) {
+
+      // Parse JSON if possible; otherwise fallback to text
+      let result;
+      try {
+        result = await response.json();
+      } catch (e) {
+        const asText = await response.text().catch(() => null);
+        result = asText;
+      }
+
+      // Hugging Face inference usually returns an array like [{ summary_text: "..." }]
+      if (Array.isArray(result) && result.length > 0 && result[0].summary_text) {
         setSummary(result[0].summary_text);
+      } else if (result && typeof result === "object" && result.summary_text) {
+        setSummary(result.summary_text);
+      } else if (typeof result === "string" && result.trim().length > 0) {
+        setSummary(result);
       } else {
-        console.log("Unexpected response format:", result);
+        console.warn("Unexpected response format from HF:", result);
         setSummary("Unable to generate summary at this time.");
       }
     } catch (error) {
-      console.error("Error generating summary:", error);
-      setSummary("Error generating summary. Please try again later.");
+      if (error.name === "AbortError") {
+        // Request was aborted — do not treat as a failure the user needs to see
+        console.log("HuggingFace request aborted.");
+      } else {
+        console.error("Error generating summary:", error);
+        setSummary("Error generating summary. Please try again later.");
+      }
+    } finally {
+      setLoading(false);
+      // clear controller after completion
+      fetchControllerRef.current = null;
     }
-
-    setLoading(false);
   };
 
   const handleBack = () => {
